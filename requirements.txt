@@ -1,0 +1,6 @@
+yt-dlp>=2024.1.0
+requests>=2.31.0
+pandas>=2.0.0
+tqdm>=4.66.0
+# 如果 DB_BACKEND 切换为 mysql 再装:
+# pymysql>=1.1.0

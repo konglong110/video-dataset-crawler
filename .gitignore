@@ -1,0 +1,13 @@
+data/
+*.db
+*.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.mp4
+*.csv.download
+*.xlsx
+*:Zone.Identifier
+.claude/
