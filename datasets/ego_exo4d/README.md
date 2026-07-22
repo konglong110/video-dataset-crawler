@@ -5,9 +5,10 @@
 
 ## 获取方式
 
-流程与 `datasets/ego4d/` 完全一致（同一个申请、同一个 license、同一个 CLI），
-区别只是用 `egoexo` 命令而不是 `ego4d` 命令，数据结构上多了同一场景的
-第一人称（Aria 眼镜）+ 第三人称（GoPro）多视角对齐信息。
+跟 Ego4D 是**两个独立的申请**（分别到 ego4d.dev/request/ego-exo4d 签署协议），
+但机制完全一样：审批通过后（约48小时）邮件发一组 AWS Access Key/Secret Key，
+`aws configure` 配置后用 `egoexo` 命令（而不是 `ego4d`）下载，凭证同样 **14 天过期**。
+数据结构上多了同一场景的第一人称（Aria 眼镜）+ 第三人称（GoPro）多视角对齐信息。
 
 ## TODO
 

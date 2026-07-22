@@ -188,6 +188,17 @@ def is_duplicate_md5(md5: str) -> bool:
         return cur.fetchone() is not None
 
 
+def get_one(dataset: str, source_video_id: str):
+    """按 dataset+source_video_id 查询单条记录，返回 dict 或 None。"""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "SELECT * FROM video_assets WHERE dataset = ? AND source_video_id = ?",
+            (dataset, source_video_id),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
 def stats(dataset: str = None):
     with get_conn() as conn:
         if dataset:

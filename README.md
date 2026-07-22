@@ -37,9 +37,18 @@ video-dataset-crawler/
 └── data/                      # 下载产物，已加入 .gitignore，不进仓库
 ```
 
+## 环境准备
+
+本项目使用 conda 管理 Python 环境，本地开发环境为：
+
+```bash
+conda activate video-crawler   # Python 3.11
+```
+
 ## 快速开始
 
 ```bash
+conda activate video-crawler
 pip install -r requirements.txt
 python scripts/init_db.py          # 初始化本地 video_assets.db
 python datasets/videocc/crawl.py --limit 20   # 跑一个数据集的小样本验证

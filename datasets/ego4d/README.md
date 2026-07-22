@@ -5,12 +5,20 @@
 
 ## 获取方式（跟其他数据集不一样，走官方 CLI，不是直接爬）
 
-1. 到 https://ego4ddataset.com 申请许可证（license），审批通过后拿到 license key。
-2. **license key 14 天过期**，需要用同一邮箱定期重新签署，务必在项目排期里预留自动提醒/重签流程，
-   不要假设申请一次就一劳永逸。
-3. 安装官方 `ego4d` python 模块（conda 环境），用 `ego4d --output_directory=... --datasets ...`
-   下载，数据托管在 AWS S3。
-4. **务必用 `--benchmarks` / `--video_uids` 过滤**，全量下载体积达 5TB 级别，先按需要的子集下载。
+> **状态：license 已签署完成（2026-07），可以合规采集。**
+
+1. 许可协议在 https://ego4ddataset.com 审批通过后，官方会**邮件发一组 AWS Access Key / Secret Key**
+   （不是简单的一个 license key 字符串）。
+2. 用 `aws configure`（或 `aws configure --profile ego4d`）把这组凭证配置到本地，`ego4d` CLI 会自动读取。
+3. **这组 AWS 凭证 14 天过期**，过期后需要重新登录 ego4ddataset.com 申请获取新的一组，
+   不能自动续期，务必在项目排期里留出定期重新申请的提醒。
+4. 安装：`pip install ego4d`，下载命令示例：
+   ```bash
+   ego4d --output_directory="~/ego4d_data" --datasets full_scale annotations --metadata --version v2 --yes
+   ```
+   （`--yes` 跳过确认提示，方便脚本化调用）
+5. **务必先用小范围数据集/子集试跑**，全量 `full_scale` 体积达 TB 级别，建议先只下 `metadata` +
+   `annotations`，视需要再决定要不要下 `full_scale` 全量视频。
 
 ## 与本项目公共基础设施的关系
 
