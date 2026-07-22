@@ -8,3 +8,6 @@ venv/
 .env
 *.mp4
 *.csv.download
+*.xlsx
+*:Zone.Identifier
+.claude/
