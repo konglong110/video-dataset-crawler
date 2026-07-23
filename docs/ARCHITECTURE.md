@@ -89,8 +89,10 @@
             └───────────── 源失效直接置 ──► 2 INVALID（不再重试）
 ```
 
-> **可扩展列**：clip 起止时间戳（VideoCC/HD-VILA 切片需要）作为通用列 `clip_start_sec`/`clip_end_sec`
-> 加在本表上，不要每个数据集另建辅助表——保持"单表"设计。见工单 T01。
+> **clip 时间戳列（T01 已落地）**：clip 起止时间戳作为通用列 `clip_start_us`/`clip_end_us`
+> （**微秒 INTEGER**）加在本表上，不为单个数据集另建辅助表——保持"单表"设计。
+> 单位取微秒是为无损保留源标注精度并复用现成的 `us_to_timestamp`（喂给 yt-dlp 前再转 HH:MM:SS）。
+> `init_db()` 自带幂等迁移（`_apply_migrations`），老库会自动补列。HD-VILA(T07) 切片复用同两列。
 
 ## 5. 数据集分三类（决定 crawl.py 的写法）
 
@@ -109,7 +111,7 @@
 | 代理池 | `config.py` 只有单代理占位 `HTTP_PROXY` | INFRA-2 |
 | OSS 冷存储 | `storage.upload_to_cold_storage` 抛 NotImplementedError | INFRA-3 |
 | MySQL backend | `db.get_conn` 的 mysql 分支抛 NotImplementedError | INFRA-4 |
-| clip 时间戳列 | schema 无字段存起止时间 | T01（随 VideoCC 一起补） |
+| clip 时间戳列 | ✅ 已完成（`clip_start_us`/`clip_end_us`，随 T01 落地） | — |
 
 ## 7. 设计原则（所有工单继承）
 

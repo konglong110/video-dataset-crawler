@@ -1,5 +1,23 @@
 # 工单 T01 — 打通 VideoCC 端到端（含 schema 补齐）
 
+> **状态：✅ 已验收（2026-07-23）** ｜ 实现分支 `claude/videocc-end-to-end-m4gl47`（commit `6cdc5d8`），待并入 main。
+>
+> **验收结论（架构师）**：5 项验收全部实跑通过——① 全新库含新列；② `--register` 正确写入 clip 起止 + 多 clip 区分；
+> ③ `fetch_one` 把 start/end 转 HH:MM:SS 传入 `download_youtube`，且 `start=0`（片头）边界处理正确；
+> ④ 其余 7 个数据集 import 不受影响；⑤ 无脏文件提交。
+>
+> **两处对工单的偏差，均接受**：
+> 1. **单位/列名**：工单原定"秒 REAL / `clip_start_sec`"，实现改为"**微秒 INTEGER / `clip_start_us`**"。
+>    接受——微秒无损保留源精度，且复用现成 `us_to_timestamp`，比原方案更好。**以实现为准**，
+>    已同步 `ARCHITECTURE.md`；后续 HD-VILA(T07) 按 `clip_start_us`/`clip_end_us` 复用。
+> 2. **额外加了幂等迁移**（`_apply_migrations`，老库自动补列），超出"老库重建即可"的要求，是有价值的加固，接受。
+>
+> **流程提醒**：偏差①改动了工单里标注"不要自行更改"的决策——即使结果更优，按 `DEV_GUIDE §6`
+> 应在回报里显式指出该偏差并说明理由，供架构师确认，而非默默改掉。下次注意。
+> 以下为原始工单内容，存档备查。
+
+---
+
 - **类型**：A 类（YouTube 爬取） · **依赖**：无 · **预估**：~1 人天
 - **必读**：`docs/ARCHITECTURE.md`、`docs/DEV_GUIDE.md`、`README.md`、`datasets/videocc/README.md`
 - **要改的文件**：`common/db.py`、`datasets/videocc/crawl.py`（只动这两处及 videocc 目录，**不碰其他数据集**）

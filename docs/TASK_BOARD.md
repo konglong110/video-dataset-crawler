@@ -9,10 +9,10 @@
 
 | 序 | 任务 | 类型 | 状态 | 工单 | 依赖 | 说明 |
 |---|---|---|---|---|---|---|
-| 1 | **T01 VideoCC**（含 schema 补齐） | A | ⬜ | [T01](tasks/T01-videocc.md) | — | 首个端到端样板，验证 common 全链路 |
+| 1 | **T01 VideoCC**（含 schema 补齐） | A | ✅ | [T01](tasks/T01-videocc.md) | — | 首个端到端样板已跑通并验收（分支 `claude/videocc-end-to-end-m4gl47`，待并入 main） |
 | 2 | **T02 Ego4D** | B | ⬜ | [T02](tasks/T02-ego4d.md) | license（**已签署，14 天窗口**） | 抢 license 窗口，独立轨道可并行 |
 | 3 | T03 Ego-Exo4D | B | ⬜ | — | T02（共用 license/CLI 经验） | 照抄 T02，命令换 `egoexo`，视角后缀 |
-| 4 | T04 InternVid | A | ⬜ | — | T01（复用样板） | 标注 HF 现成，第二个跑通的 A 类 |
+| 4 | **T04 InternVid** | A | ⬜（**建议下一个派**） | — | T01 已验收，样板可复用 | 标注 HF 现成，第二个跑通的 A 类 |
 | 5 | T05 MiraData | A | ⬜ | — | T01；建议在 T07 后 | 结构化 caption 存 JSON；与 HD-VILA 视频源重叠 |
 | 6 | T06 HD-VG-130M | A | ⬜ | — | T01 | 规模最大 130M，分批注册；YouTube 限流是大头 |
 | 7 | T07 HD-VILA-100M | A | ⬜ | — | T01；**先人工确认 caption 位置** | 一原视频对应多 clip，先下原片再本地切 |
@@ -22,7 +22,7 @@
 
 | 序 | 任务 | 状态 | 归属 | 说明 |
 |---|---|---|---|---|
-| INFRA-1 | schema 加 `clip_start_sec`/`clip_end_sec` | ⬜ | 并入 **T01 Phase 0** | VideoCC/HD-VILA 切片共用 |
+| INFRA-1 | schema 加 clip 时间戳列 | ✅ | 已随 **T01** 完成 | 实际实现为 `clip_start_us`/`clip_end_us`（微秒 INTEGER，非最初拟的秒 REAL，见 T01 验收结论）；`init_db()` 自带幂等迁移，老库自动补列。HD-VILA(T07) 复用同两列 |
 | INFRA-2 | 代理池接入 | ⬜ | 待排 | `config.py` 现为单代理占位；量大后 YouTube 限流需要 |
 | INFRA-3 | OSS 冷存储上传 | ⬜ | 待排 | `storage.upload_to_cold_storage` 接 oss2 SDK |
 | INFRA-4 | MySQL backend | ⬜ | 待排（量级触发） | `db.get_conn` mysql 分支；SQLite 撑不住再做 |
@@ -55,3 +55,4 @@ INFRA-2/3/4/5 按需插入，不阻塞数据集主线
 | 日期 | 变更 | 由谁 |
 |---|---|---|
 | 2026-07-23 | 建立看板；确定 T01→T02 优先级；Ego4D license 已签署 | 架构师窗口 |
+| 2026-07-23 | T01 验收通过（5 项验收实跑）；INFRA-1 随之完成；clip 列定为微秒 INTEGER；建议下一个派 T04 | 架构师窗口 |
