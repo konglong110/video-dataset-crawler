@@ -26,9 +26,12 @@
 | INFRA-2 | 代理池接入 | ⬜ | 待排 | `config.py` 现为单代理占位；量大后 YouTube 限流需要 |
 | INFRA-3 | OSS 冷存储上传 | ⬜ | 待排 | `storage.upload_to_cold_storage` 接 oss2 SDK |
 | INFRA-4 | MySQL backend | ⬜ | 待排（量级触发） | `db.get_conn` mysql 分支；SQLite 撑不住再做 |
-| **INFRA-6** | **统一日志系统** | ⬜（**就绪可派**） | [INFRA-6](tasks/INFRA-6-logging.md) | 控制台+按数据集轮转文件，标准库 logging；建议三者中最先做 |
-| **INFRA-7** | **程序异常邮件告警** | ⬜（**就绪可派**） | [INFRA-7](tasks/INFRA-7-email-alert.md) | smtplib，崩溃即邮件；只在崩溃/汇总发，不逐条发 |
-| **INFRA-5** | **重试退避机制** | ⬜（**就绪可派**） | [INFRA-5](tasks/INFRA-5-retry-backoff.md) | 加 `next_retry_at`，退避期内不取任务（替掉 `time.sleep(0)` 占位） |
+| **INFRA-6** | **统一日志系统** | ✅ | [INFRA-6](tasks/INFRA-6-logging.md) | `common/logging_setup.py`，控制台+按数据集轮转文件；已验收 |
+| **INFRA-7** | **程序异常邮件告警** | ✅ | [INFRA-7](tasks/INFRA-7-email-alert.md) | `common/notify.py`，崩溃即邮件、只崩溃/汇总发；已验收 |
+| **INFRA-5** | **重试退避机制** | ✅ | [INFRA-5](tasks/INFRA-5-retry-backoff.md) | `next_retry_at` 退避期内不取任务；已验收 |
+
+> 三者实现均在分支 `claude/infra-log-mail-retry`（3 commit，基于 main），已通过架构师实跑验收（日志/邮件/退避/回归 4 组全绿），**待并入 main**。
+> 已接受的 3 处小决策：① SMTP 端口约定 465→SSL / 其余→STARTTLS；② `RETRY_BACKOFF_SEC` 保持 config 常量（未 env 化）；③ 成功/超限不清空 `next_retry_at`（status 过滤已排除，无副作用）。
 
 ## 三、依赖关系图
 
@@ -60,3 +63,4 @@ INFRA-2/3/4/5 按需插入，不阻塞数据集主线
 | 2026-07-23 | T01 验收通过（5 项验收实跑）；INFRA-1 随之完成；clip 列定为微秒 INTEGER；建议下一个派 T04 | 架构师窗口 |
 | 2026-07-23 | 应用户需求新增 3 张基础设施工单：INFRA-6 日志 / INFRA-7 邮件告警 / INFRA-5 重试退避（建议按此序做） | 架构师窗口 |
 | 2026-07-23 | T01 已并入 main（`6cdc5d8`）；派出 INFRA-6/7/5 开发（分支 `claude/infra-log-mail-retry`） | 架构师窗口 |
+| 2026-07-23 | INFRA-6/7/5 开发完成并通过架构师实跑验收（4 组全绿）；待并入 main | 架构师窗口 |
