@@ -45,3 +45,15 @@ REQUEST_TIMEOUT_SEC = 30
 
 # ---------- yt-dlp ----------
 YTDLP_FORMAT = os.environ.get("VDC_YTDLP_FORMAT", "bestvideo[height<=1080]+bestaudio/best")
+
+# ---------- 邮件告警 ----------
+# 全部走环境变量，禁止硬编码密码。未启用（默认）或配置缺全时，common/notify.py
+# 会静默跳过并记日志，绝不因发信失败把主流程带崩。
+# 端口约定：465 走 SSL，其余（如 587）走 STARTTLS。
+SMTP_HOST = os.environ.get("VDC_SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("VDC_SMTP_PORT", 465))
+SMTP_USER = os.environ.get("VDC_SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("VDC_SMTP_PASSWORD", "")
+ALERT_FROM = os.environ.get("VDC_ALERT_FROM", "")
+ALERT_TO = os.environ.get("VDC_ALERT_TO", "")           # 收件人，多个用逗号分隔
+ALERT_ENABLED = os.environ.get("VDC_ALERT_ENABLED", "0")  # "1" 开启，默认 "0" 关闭

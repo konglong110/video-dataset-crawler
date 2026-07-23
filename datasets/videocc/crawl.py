@@ -18,6 +18,7 @@ import pandas as pd
 
 from common import db
 from common.downloader import run_batch
+from common.notify import notify_on_crash
 from common.youtube_fetch import download_youtube
 from common.storage import local_path_for
 
@@ -73,7 +74,10 @@ if __name__ == "__main__":
 
     db.init_db()
 
-    if args.register:
-        register()
-    else:
-        run_batch(DATASET, fetch_one, limit=args.limit)
+    # 无人值守跑，用 notify_on_crash 包住主流程：崩溃即邮件告警再抛出。
+    # 作为其余数据集接入的样板；单条下载失败不在这里发，只进日志。
+    with notify_on_crash(DATASET):
+        if args.register:
+            register()
+        else:
+            run_batch(DATASET, fetch_one, limit=args.limit)
