@@ -9,7 +9,7 @@
 
 | 序 | 任务 | 类型 | 状态 | 工单 | 依赖 | 说明 |
 |---|---|---|---|---|---|---|
-| 1 | **T01 VideoCC**（含 schema 补齐） | A | ✅ | [T01](tasks/T01-videocc.md) | — | 首个端到端样板已跑通并验收（分支 `claude/videocc-end-to-end-m4gl47`，待并入 main） |
+| 1 | **T01 VideoCC**（含 schema 补齐） | A | ✅ | [T01](tasks/T01-videocc.md) | — | 首个端到端样板已验收并**已并入 main**（`6cdc5d8`），后续任务以 main 为基线 |
 | 2 | **T02 Ego4D** | B | ⬜ | [T02](tasks/T02-ego4d.md) | license（**已签署，14 天窗口**） | 抢 license 窗口，独立轨道可并行 |
 | 3 | T03 Ego-Exo4D | B | ⬜ | — | T02（共用 license/CLI 经验） | 照抄 T02，命令换 `egoexo`，视角后缀 |
 | 4 | **T04 InternVid** | A | ⬜（**建议下一个派**） | — | T01 已验收，样板可复用 | 标注 HF 现成，第二个跑通的 A 类 |
@@ -59,3 +59,4 @@ INFRA-2/3/4/5 按需插入，不阻塞数据集主线
 | 2026-07-23 | 建立看板；确定 T01→T02 优先级；Ego4D license 已签署 | 架构师窗口 |
 | 2026-07-23 | T01 验收通过（5 项验收实跑）；INFRA-1 随之完成；clip 列定为微秒 INTEGER；建议下一个派 T04 | 架构师窗口 |
 | 2026-07-23 | 应用户需求新增 3 张基础设施工单：INFRA-6 日志 / INFRA-7 邮件告警 / INFRA-5 重试退避（建议按此序做） | 架构师窗口 |
+| 2026-07-23 | T01 已并入 main（`6cdc5d8`）；派出 INFRA-6/7/5 开发（分支 `claude/infra-log-mail-retry`） | 架构师窗口 |
