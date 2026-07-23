@@ -30,7 +30,7 @@
 | **INFRA-7** | **程序异常邮件告警** | ✅ | [INFRA-7](tasks/INFRA-7-email-alert.md) | `common/notify.py`，崩溃即邮件、只崩溃/汇总发；已验收 |
 | **INFRA-5** | **重试退避机制** | ✅ | [INFRA-5](tasks/INFRA-5-retry-backoff.md) | `next_retry_at` 退避期内不取任务；已验收 |
 
-> 三者实现均在分支 `claude/infra-log-mail-retry`（3 commit，基于 main），已通过架构师实跑验收（日志/邮件/退避/回归 4 组全绿），**待并入 main**。
+> 三者实现已通过架构师实跑验收（日志/邮件/退避/回归 4 组全绿），并**已并入 main**（`914a545`）。后续所有数据集直接复用。
 > 已接受的 3 处小决策：① SMTP 端口约定 465→SSL / 其余→STARTTLS；② `RETRY_BACKOFF_SEC` 保持 config 常量（未 env 化）；③ 成功/超限不清空 `next_retry_at`（status 过滤已排除，无副作用）。
 
 ## 三、依赖关系图
