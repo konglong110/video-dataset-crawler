@@ -15,10 +15,9 @@
 
     run_batch(dataset="videocc", fetch_fn=fetch_one, limit=100)
 """
-import time
 from multiprocessing import Pool
 
-from config import MAX_WORKERS, MAX_RETRIES, RETRY_BACKOFF_SEC
+from config import MAX_WORKERS, MAX_RETRIES
 from common import db
 from common.dedupe import file_md5
 from common.logging_setup import get_logger
@@ -67,6 +66,6 @@ def _handle_result(dataset: str, task: dict, result: dict):
         log.warning("失败 id=%s video_id=%s: %s",
                     task["id"], task["source_video_id"], error)
         db.mark_result(task["id"], db.STATUS_PENDING, error_msg=error)
+        # bump_retry 会按 RETRY_BACKOFF_SEC * 重试次数 写 next_retry_at，退避期内
+        # fetch_pending 自动跳过——不在这里 sleep 阻塞 worker（退避交给 DB 时间戳）。
         db.bump_retry(task["id"], MAX_RETRIES)
-        # 简单的退避：让下一次批量运行前有个间隔，避免同一时间点持续被限流
-        time.sleep(0)  # 占位：如需真正 sleep 退避，在这里按 RETRY_BACKOFF_SEC * retry_count 等待

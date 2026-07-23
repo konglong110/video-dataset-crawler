@@ -9,7 +9,7 @@ import sqlite3
 import datetime
 from contextlib import contextmanager
 
-from config import DB_BACKEND, SQLITE_PATH, MYSQL_CONFIG
+from config import DB_BACKEND, SQLITE_PATH, MYSQL_CONFIG, RETRY_BACKOFF_SEC
 
 # 下载状态常量
 STATUS_PENDING = 0
@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS video_assets (
     caption_path TEXT,
     download_status INTEGER NOT NULL DEFAULT 0,
     retry_count INTEGER NOT NULL DEFAULT 0,
+    next_retry_at TEXT,         -- 下次可重试时间（ISO 字符串），NULL 表示随时可取；退避靠它跨进程/跨重启生效
     error_msg TEXT,
     created_at TEXT,
     updated_at TEXT,
@@ -46,6 +47,7 @@ CREATE INDEX IF NOT EXISTS idx_md5 ON video_assets(md5);
 _MIGRATIONS = [
     ("clip_start_us", "ALTER TABLE video_assets ADD COLUMN clip_start_us INTEGER"),
     ("clip_end_us", "ALTER TABLE video_assets ADD COLUMN clip_end_us INTEGER"),
+    ("next_retry_at", "ALTER TABLE video_assets ADD COLUMN next_retry_at TEXT"),
 ]
 
 
@@ -112,14 +114,19 @@ def upsert_pending(dataset: str, source_video_id: str, source_url: str = None,
 
 
 def fetch_pending(dataset: str, limit: int = 100):
+    # 退避期内的任务（next_retry_at 还在未来）先跳过，等下一轮再取；
+    # next_retry_at 为 NULL 表示从没失败过/随时可取。时间用 UTC ISO，和 bump_retry 写入格式一致，
+    # 同格式 ISO 串按字典序比较即等价于按时间比较。
+    now = datetime.datetime.utcnow().isoformat()
     with get_conn() as conn:
         cur = conn.execute(
             """
             SELECT * FROM video_assets
             WHERE dataset = ? AND download_status = ?
+              AND (next_retry_at IS NULL OR next_retry_at <= ?)
             ORDER BY id LIMIT ?
             """,
-            (dataset, STATUS_PENDING, limit),
+            (dataset, STATUS_PENDING, now, limit),
         )
         return [dict(r) for r in cur.fetchall()]
 
@@ -144,16 +151,33 @@ def mark_result(record_id: int, status: int, local_path: str = None,
 
 
 def bump_retry(record_id: int, max_retries: int):
-    """重试计数 +1，超过上限则标记为 RETRY_EXCEEDED。"""
+    """
+    重试计数 +1：超过上限标记 RETRY_EXCEEDED（不再重试）；否则回 PENDING，并按
+    RETRY_BACKOFF_SEC * 重试次数 秒设置 next_retry_at，退避期内 fetch_pending 取不到它。
+
+    退避靠 DB 时间戳而非在 worker 里 sleep 阻塞——这样跨进程/跨重启都生效，
+    也不会占死多进程 worker（符合断点续传设计）。
+    """
     with get_conn() as conn:
         cur = conn.execute("SELECT retry_count FROM video_assets WHERE id = ?", (record_id,))
         row = cur.fetchone()
         retry_count = (row["retry_count"] if row else 0) + 1
-        status = STATUS_RETRY_EXCEEDED if retry_count >= max_retries else STATUS_PENDING
-        conn.execute(
-            "UPDATE video_assets SET retry_count = ?, download_status = ? WHERE id = ?",
-            (retry_count, status, record_id),
-        )
+        if retry_count >= max_retries:
+            # 超限：不再重试，next_retry_at 不用管（status=3 本就被 fetch_pending 排除）
+            conn.execute(
+                "UPDATE video_assets SET retry_count = ?, download_status = ? WHERE id = ?",
+                (retry_count, STATUS_RETRY_EXCEEDED, record_id),
+            )
+        else:
+            # 未超限：回 PENDING，但延后到 now + RETRY_BACKOFF_SEC * retry_count 秒才可再取
+            next_retry_at = (
+                datetime.datetime.utcnow()
+                + datetime.timedelta(seconds=RETRY_BACKOFF_SEC * retry_count)
+            ).isoformat()
+            conn.execute(
+                "UPDATE video_assets SET retry_count = ?, download_status = ?, next_retry_at = ? WHERE id = ?",
+                (retry_count, STATUS_PENDING, next_retry_at, record_id),
+            )
         conn.commit()
 
 
