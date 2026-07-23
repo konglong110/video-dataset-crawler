@@ -15,6 +15,10 @@ LOG_DIR = DATA_ROOT / "logs"
 for _d in (HOT_DIR, WARM_DIR, LOG_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
+# ---------- 日志 ----------
+# 统一日志级别，供 common/logging_setup.py 读取；控制台 + 按数据集落 LOG_DIR/<dataset>.log
+LOG_LEVEL = os.environ.get("VDC_LOG_LEVEL", "INFO")   # DEBUG | INFO | WARNING | ERROR
+
 # ---------- 数据库 ----------
 # 默认用 SQLite，零配置直接跑；后续量大了可以切 MySQL（改这里 + common/db.py 的连接部分）
 DB_BACKEND = os.environ.get("VDC_DB_BACKEND", "sqlite")  # "sqlite" | "mysql"

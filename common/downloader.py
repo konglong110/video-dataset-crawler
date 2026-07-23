@@ -21,6 +21,7 @@ from multiprocessing import Pool
 from config import MAX_WORKERS, MAX_RETRIES, RETRY_BACKOFF_SEC
 from common import db
 from common.dedupe import file_md5
+from common.logging_setup import get_logger
 
 
 def _worker(args):
@@ -38,12 +39,13 @@ def run_batch(dataset: str, fetch_fn, limit: int = 100, workers: int = None):
     fetch_fn(task: dict) -> {"success": bool, "local_path": str|None, "error": str|None}
     """
     workers = workers or MAX_WORKERS
+    log = get_logger(dataset)
     tasks = db.fetch_pending(dataset, limit=limit)
     if not tasks:
-        print(f"[{dataset}] 没有待下载任务了（要么全下完了，要么还没 upsert_pending）")
+        log.info("没有待下载任务了（要么全下完了，要么还没 upsert_pending）")
         return
 
-    print(f"[{dataset}] 本批 {len(tasks)} 条任务，并发 {workers}")
+    log.info("本批 %d 条任务，并发 %d", len(tasks), workers)
 
     with Pool(processes=workers) as pool:
         for task, result in pool.imap_unordered(_worker, [(t, fetch_fn) for t in tasks]):
@@ -51,6 +53,7 @@ def run_batch(dataset: str, fetch_fn, limit: int = 100, workers: int = None):
 
 
 def _handle_result(dataset: str, task: dict, result: dict):
+    log = get_logger(dataset)
     if result.get("success"):
         local_path = result.get("local_path")
         md5 = file_md5(local_path) if local_path else None
@@ -58,9 +61,11 @@ def _handle_result(dataset: str, task: dict, result: dict):
             task["id"], db.STATUS_SUCCESS,
             local_path=local_path, md5=md5,
         )
+        log.info("成功 id=%s video_id=%s", task["id"], task["source_video_id"])
     else:
         error = result.get("error", "unknown error")
-        print(f"[{dataset}] 失败 id={task['id']} video_id={task['source_video_id']}: {error}")
+        log.warning("失败 id=%s video_id=%s: %s",
+                    task["id"], task["source_video_id"], error)
         db.mark_result(task["id"], db.STATUS_PENDING, error_msg=error)
         db.bump_retry(task["id"], MAX_RETRIES)
         # 简单的退避：让下一次批量运行前有个间隔，避免同一时间点持续被限流
