@@ -47,16 +47,21 @@ def register():
         # 用 URL 里的 video id 当唯一键；不同 clip 共享同一个 video_id 时
         # source_video_id 需要带上时间戳做区分，避免多个 clip 互相覆盖
         video_id = row["video_url"].rstrip("/").split("=")[-1] + f"_{row['start_us']}"
-        db.upsert_pending(DATASET, video_id, source_url=row["video_url"])
+        db.upsert_pending(
+            DATASET, video_id, source_url=row["video_url"],
+            clip_start_us=int(row["start_us"]), clip_end_us=int(row["end_us"]),
+        )
     print(f"[{DATASET}] 已注册 {len(df)} 条任务")
 
 
 def fetch_one(task: dict) -> dict:
     out_path = str(local_path_for(DATASET, task["source_video_id"]))
-    # TODO: 这里简化了，实际应该从 db 里把 start/end 时间戳也存下来一起取出，
-    # 当前 schema 没有单独字段存 caption/start/end，需要的话在 db.py 的
-    # video_assets 表里加列，或者另建一张 videocc_clips 辅助表存这些信息。
-    ok, err = download_youtube(task["source_url"], out_path)
+    # clip 起止时间戳在 register() 时已经存进 video_assets（微秒），这里转成
+    # yt-dlp 认的 HH:MM:SS，只下载需要的片段，而不是整段视频。
+    # 用 is not None 判断而不是真值判断：start=0（clip 从片头开始）也要走截取。
+    start = us_to_timestamp(task["clip_start_us"]) if task.get("clip_start_us") is not None else None
+    end = us_to_timestamp(task["clip_end_us"]) if task.get("clip_end_us") is not None else None
+    ok, err = download_youtube(task["source_url"], out_path, start=start, end=end)
     return {"success": ok, "local_path": out_path if ok else None, "error": err}
 
 

@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS video_assets (
     local_path TEXT,
     resolution TEXT,
     duration_sec REAL,
+    clip_start_us INTEGER,      -- 源标注里的 clip 起始时间戳（微秒）；整段视频只截这一段时用
+    clip_end_us INTEGER,        -- 源标注里的 clip 结束时间戳（微秒）
     md5 TEXT,
     caption_path TEXT,
     download_status INTEGER NOT NULL DEFAULT 0,
@@ -38,6 +40,20 @@ CREATE TABLE IF NOT EXISTS video_assets (
 CREATE INDEX IF NOT EXISTS idx_status ON video_assets(dataset, download_status);
 CREATE INDEX IF NOT EXISTS idx_md5 ON video_assets(md5);
 """
+
+# CREATE TABLE IF NOT EXISTS 不会给已存在的老表补列，脚手架阶段已经建过库的人升级后
+# 需要单独把新列补上。这里维护一份"缺列就补"的迁移，init_db() 里执行，可反复跑（幂等）。
+_MIGRATIONS = [
+    ("clip_start_us", "ALTER TABLE video_assets ADD COLUMN clip_start_us INTEGER"),
+    ("clip_end_us", "ALTER TABLE video_assets ADD COLUMN clip_end_us INTEGER"),
+]
+
+
+def _apply_migrations(conn):
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(video_assets)")}
+    for column, ddl in _MIGRATIONS:
+        if column not in existing:
+            conn.execute(ddl)
 
 
 @contextmanager
@@ -66,21 +82,31 @@ def get_conn():
 def init_db():
     with get_conn() as conn:
         conn.executescript(_SCHEMA)
+        _apply_migrations(conn)
         conn.commit()
 
 
-def upsert_pending(dataset: str, source_video_id: str, source_url: str = None):
-    """登记一条待下载任务，已存在则忽略（不会重置已成功的状态）。"""
+def upsert_pending(dataset: str, source_video_id: str, source_url: str = None,
+                   clip_start_us: int = None, clip_end_us: int = None):
+    """
+    登记一条待下载任务，已存在则忽略（不会重置已成功的状态）。
+
+    clip_start_us / clip_end_us 是可选的 clip 起止时间戳（微秒），给
+    "整段视频 + clip 时间戳"这类数据集（如 VideoCC）按片段下载用；
+    不传则整段下载，其余数据集调用方式不变。
+    """
     now = datetime.datetime.utcnow().isoformat()
     with get_conn() as conn:
         conn.execute(
             """
             INSERT INTO video_assets (dataset, source_video_id, source_url,
+                                       clip_start_us, clip_end_us,
                                        download_status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(dataset, source_video_id) DO NOTHING
             """,
-            (dataset, source_video_id, source_url, STATUS_PENDING, now, now),
+            (dataset, source_video_id, source_url, clip_start_us, clip_end_us,
+             STATUS_PENDING, now, now),
         )
         conn.commit()
 
